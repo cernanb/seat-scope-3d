@@ -67,6 +67,11 @@ export function SeatScopeApp() {
 
   const metrics = calculateSeatMetrics(auditorium, selectedSeatLabel);
 
+  const eyebrowLabel =
+    auditoriumSource === "theater" && auditorium.theater
+      ? `${auditorium.theater.name} - ${auditorium.theater.city}`
+      : findScreenPreset(screenPresetId).label;
+
   const handleSourceChange = (nextSource: AuditoriumSource) => {
     setAuditoriumSource(nextSource);
     setSelectedSeatLabel(
@@ -111,7 +116,7 @@ export function SeatScopeApp() {
     <main className="flex min-h-screen flex-col gap-8 bg-zinc-50 px-6 py-8 text-zinc-950">
       <header className="mx-auto flex w-full max-w-7xl flex-col gap-2">
         <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Medium auditorium
+          {eyebrowLabel}
         </p>
         <h1 className="text-4xl font-semibold">Seat Scope 3D</h1>
       </header>
