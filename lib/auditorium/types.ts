@@ -40,6 +40,14 @@ export type AuditoriumGeometry = {
   eyeForwardOffsetMeters: number;
 };
 
+export type TheaterInfo = {
+  name: string;
+  city: string;
+  screenFormatLabel: string;
+  sourceNote: string;
+  sourceUrl: string;
+};
+
 export type Auditorium = {
   id: string;
   name: string;
@@ -48,6 +56,11 @@ export type Auditorium = {
   geometry: AuditoriumGeometry;
   rows: Row[];
   defaultSeatLabel: SeatLabel;
+  /**
+   * Present when this Auditorium is modeled after a specific real-world
+   * Theater rather than a purely synthetic screen-size category.
+   */
+  theater?: TheaterInfo;
 };
 
 export type SeatMetrics = {

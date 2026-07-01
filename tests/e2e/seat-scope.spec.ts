@@ -44,6 +44,38 @@ test("lets a user choose a seat and inspect the 3D perspective", async ({
     .toBeGreaterThan(20);
 });
 
+test("lets a user switch to a real theater and see its own seat chart and disclosure", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  await page.getByRole("radio", { name: "Real theater" }).click();
+
+  await expect(page).toHaveURL(/theater=tcl-chinese-theatre/);
+  await expect(page.getByLabel("Theater")).toHaveValue(
+    "tcl-chinese-theatre",
+  );
+  await expect(page.getByText(/is an approximation/)).toBeVisible();
+
+  await page.getByLabel("Theater").selectOption("Egyptian Theatre");
+
+  await expect(page).toHaveURL(/theater=egyptian-theatre-hollywood/);
+  await expect(
+    page.getByRole("region", { name: "Selected seat summary" }),
+  ).toContainText("F22");
+
+  const perspective = page.getByRole("img", { name: "3D view from seat F22" });
+
+  await expect(perspective).toBeVisible();
+  await expect
+    .poll(() => countVisibleCanvasPixels(perspective.locator("canvas")))
+    .toBeGreaterThan(20);
+
+  await page.getByRole("radio", { name: "Screen size" }).click();
+
+  await expect(page).not.toHaveURL(/theater=/);
+});
+
 async function getCanvasClientArea(canvas: Locator) {
   return canvas.evaluate((element) => element.clientWidth * element.clientHeight);
 }

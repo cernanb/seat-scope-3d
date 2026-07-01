@@ -5,12 +5,23 @@ Seat Scope 3D models a movie theater seating experience so a user can choose a s
 ## Language
 
 **Auditorium**:
-A reusable theater geometry profile that defines the physical viewing environment for a seating chart and seat perspective.
-_Avoid_: Theater, venue, room, preset
+A reusable geometry profile that defines the physical viewing environment for a seating chart and seat perspective.
+It may be a purely synthetic profile or may describe one specific real-world Theater's screen.
+_Avoid_: Venue, room, preset
+
+**Theater**:
+A specific, identifiable real-world movie theater location that an Auditorium can be modeled after.
+A Theater corresponds to one physical screen/room (e.g. "AMC Century City 15 - Auditorium 8"), not an entire multiplex with all of its screens.
+_Avoid_: Venue, cinema, multiplex
 
 **Medium auditorium**:
 The default auditorium scale for the first experience, representing a plausible mid-sized movie theater rather than an exaggerated demonstration space.
 _Avoid_: Demo theater, sample room, exaggerated auditorium
+
+**Screen size**:
+A named, synthetic category of screen dimensions (e.g. "Standard multiplex", "IMAX Giant Screen") that is not tied to any specific real-world Theater.
+Chosen as an alternative to selecting a Theater, for exploring auditorium scale without picking an actual place.
+_Avoid_: Preset, screen preset, theater (as a synonym)
 
 **Raked floor**:
 An auditorium floor where seating rows rise progressively farther from the screen.

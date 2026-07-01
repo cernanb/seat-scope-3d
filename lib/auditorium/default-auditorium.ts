@@ -1,4 +1,5 @@
 import type { Auditorium } from "./types";
+import { baseGeometryErgonomics } from "./geometry-constants";
 import { defaultScreenPresetId, findScreenPreset } from "./screen-presets";
 
 const defaultScreenPreset = findScreenPreset(defaultScreenPresetId);
@@ -9,13 +10,8 @@ export const defaultAuditorium: Auditorium = {
   unit: "meters",
   screen: defaultScreenPreset.screen,
   geometry: {
+    ...baseGeometryErgonomics,
     ...defaultScreenPreset.geometry,
-    seatSpacingMeters: 0.58,
-    aisleWidthMeters: 0.95,
-    rowElevationMeters: 0.28,
-    seatCenterHeightMeters: 0.45,
-    eyeHeightMeters: 1.2,
-    eyeForwardOffsetMeters: 0.18,
   },
   rows: [
     {

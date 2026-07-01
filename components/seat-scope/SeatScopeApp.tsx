@@ -13,26 +13,49 @@ import {
   findScreenPreset,
   screenPresets,
 } from "@/lib/auditorium/screen-presets";
+import { findTheater, theaters } from "@/lib/auditorium/theaters";
 import { AuditoriumPerspective } from "./AuditoriumPerspective";
+import {
+  AuditoriumSourceToggle,
+  type AuditoriumSource,
+} from "./AuditoriumSourceToggle";
 import { ScreenSizeSelector } from "./ScreenSizeSelector";
 import { SeatMetricsPanel } from "./SeatMetricsPanel";
 import { SeatMap } from "./SeatMap";
-import { ViewModeTabs, type ViewMode } from "./ViewModeTabs";
+import { TheaterSelector } from "./TheaterSelector";
 
 const seatQueryParam = "seat";
+const theaterQueryParam = "theater";
 
 export function SeatScopeApp() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const urlSeatLabel = searchParams.get(seatQueryParam);
-  const [selectedSeatLabel, setSelectedSeatLabel] = useState(
-    () => resolveSelectableSeat(defaultAuditorium, urlSeatLabel).label,
+
+  const [auditoriumSource, setAuditoriumSource] = useState<AuditoriumSource>(
+    () => (searchParams.get(theaterQueryParam) ? "theater" : "generic"),
+  );
+  const [theaterId, setTheaterId] = useState(
+    () => findTheater(searchParams.get(theaterQueryParam)).id,
   );
   const [screenPresetId, setScreenPresetId] = useState(defaultScreenPresetId);
-  const [viewMode, setViewMode] = useState<ViewMode>("seats");
+  const [selectedSeatLabel, setSelectedSeatLabel] = useState(() => {
+    const initialAuditorium =
+      auditoriumSource === "theater"
+        ? findTheater(theaterId)
+        : defaultAuditorium;
+
+    return resolveSelectableSeat(
+      initialAuditorium,
+      searchParams.get(seatQueryParam),
+    ).label;
+  });
 
   const auditorium = useMemo(() => {
+    if (auditoriumSource === "theater") {
+      return findTheater(theaterId);
+    }
+
     const preset = findScreenPreset(screenPresetId);
 
     return {
@@ -40,19 +63,49 @@ export function SeatScopeApp() {
       screen: preset.screen,
       geometry: { ...defaultAuditorium.geometry, ...preset.geometry },
     };
-  }, [screenPresetId]);
+  }, [auditoriumSource, screenPresetId, theaterId]);
 
   const metrics = calculateSeatMetrics(auditorium, selectedSeatLabel);
 
+  const handleSourceChange = (nextSource: AuditoriumSource) => {
+    setAuditoriumSource(nextSource);
+    setSelectedSeatLabel(
+      nextSource === "theater"
+        ? findTheater(theaterId).defaultSeatLabel
+        : defaultAuditorium.defaultSeatLabel,
+    );
+  };
+
+  const handleTheaterChange = (nextTheaterId: string) => {
+    setTheaterId(nextTheaterId);
+    setSelectedSeatLabel(findTheater(nextTheaterId).defaultSeatLabel);
+  };
+
   useEffect(() => {
-    if (urlSeatLabel === metrics.seat.label) {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    let didChange = false;
+
+    if (nextParams.get(seatQueryParam) !== metrics.seat.label) {
+      nextParams.set(seatQueryParam, metrics.seat.label);
+      didChange = true;
+    }
+
+    if (auditoriumSource === "theater") {
+      if (nextParams.get(theaterQueryParam) !== theaterId) {
+        nextParams.set(theaterQueryParam, theaterId);
+        didChange = true;
+      }
+    } else if (nextParams.has(theaterQueryParam)) {
+      nextParams.delete(theaterQueryParam);
+      didChange = true;
+    }
+
+    if (!didChange) {
       return;
     }
 
-    const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.set(seatQueryParam, metrics.seat.label);
     router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
-  }, [metrics.seat.label, pathname, router, searchParams, urlSeatLabel]);
+  }, [auditoriumSource, metrics.seat.label, pathname, router, searchParams, theaterId]);
 
   return (
     <main className="flex min-h-screen flex-col gap-8 bg-zinc-50 px-6 py-8 text-zinc-950">
@@ -63,39 +116,35 @@ export function SeatScopeApp() {
         <h1 className="text-4xl font-semibold">Seat Scope 3D</h1>
       </header>
 
-      <ViewModeTabs viewMode={viewMode} onViewModeChange={setViewMode} />
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+        <SeatMap
+          auditorium={auditorium}
+          selectedSeatLabel={metrics.seat.label}
+          onSelectSeat={(seat) => setSelectedSeatLabel(seat.label)}
+        />
 
-      <section className="mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-[minmax(20rem,0.55fr)_minmax(0,1fr)]">
-        <div
-          id="seats-panel"
-          role="tabpanel"
-          aria-labelledby="seats-tab"
-          className={viewMode === "seats" ? "block" : "hidden lg:block"}
-        >
-          <SeatMap
-            auditorium={auditorium}
-            selectedSeatLabel={metrics.seat.label}
-            onSelectSeat={(seat) => setSelectedSeatLabel(seat.label)}
+        <div className="space-y-4">
+          <AuditoriumSourceToggle
+            source={auditoriumSource}
+            onSourceChange={handleSourceChange}
           />
-        </div>
-
-        <div
-          id="perspective-panel"
-          role="tabpanel"
-          aria-labelledby="perspective-tab"
-          className={viewMode === "perspective" ? "block" : "hidden lg:block"}
-        >
-          <div className="space-y-4">
+          {auditoriumSource === "generic" ? (
             <ScreenSizeSelector
               presets={screenPresets}
               selectedPresetId={screenPresetId}
               onSelectPreset={setScreenPresetId}
             />
-            <AuditoriumPerspective auditorium={auditorium} metrics={metrics} />
-            <SeatMetricsPanel metrics={metrics} />
-          </div>
+          ) : (
+            <TheaterSelector
+              theaters={theaters}
+              selectedTheaterId={theaterId}
+              onSelectTheater={handleTheaterChange}
+            />
+          )}
+          <AuditoriumPerspective auditorium={auditorium} metrics={metrics} />
+          <SeatMetricsPanel metrics={metrics} />
         </div>
-      </section>
+      </div>
     </main>
   );
 }

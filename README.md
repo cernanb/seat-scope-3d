@@ -10,7 +10,12 @@ Users can select a visible seat, compare viewing metrics, and inspect a 3D seat 
 - URL persistence through the `seat` query parameter.
 - Selected seat metrics for distance, horizontal angle, and vertical angle.
 - 3D auditorium perspective from the selected viewing position.
-- Responsive view tabs for switching between the seat map and perspective on small screens.
+- Generic screen-size categories (Boutique through IMAX Giant Screen), or a small
+  curated set of real Southern California theaters modeled from researched
+  specs (see `docs/adr/0002-approximate-real-theater-data.md` for the
+  approximation approach). The selected real theater persists through the
+  `theater` query parameter.
+- Seat map and 3D perspective are stacked full-width on every screen size.
 
 ## Getting Started
 

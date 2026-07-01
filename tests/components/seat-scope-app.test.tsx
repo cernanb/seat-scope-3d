@@ -142,29 +142,14 @@ describe("SeatScopeApp", () => {
     expect(within(summary).getByText("Vertical angle")).toBeInTheDocument();
   });
 
-  it("switches mobile view modes without losing the selected seat", async () => {
+  it("renders the seat map and 3D perspective stacked together without needing a tab switch", async () => {
     const user = userEvent.setup();
 
     render(<SeatScopeApp />);
     await user.click(screen.getByRole("button", { name: "H12" }));
-    await user.click(screen.getByRole("tab", { name: "Perspective" }));
     const summary = screen.getByRole("region", {
       name: "Selected seat summary",
     });
-
-    expect(screen.getByRole("tab", { name: "Perspective" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
-    expect(within(summary).getByText("H12")).toBeInTheDocument();
-  });
-
-  it("renders a 3D auditorium perspective from the selected seat", async () => {
-    const user = userEvent.setup();
-
-    render(<SeatScopeApp />);
-    await user.click(screen.getByRole("button", { name: "H12" }));
-    await user.click(screen.getByRole("tab", { name: "Perspective" }));
 
     expect(
       screen.getByRole("region", { name: "3D auditorium perspective" }),
@@ -172,6 +157,7 @@ describe("SeatScopeApp", () => {
     expect(
       screen.getByRole("img", { name: "3D view from seat H12" }),
     ).toBeInTheDocument();
+    expect(within(summary).getByText("H12")).toBeInTheDocument();
   });
 
   it("recalculates seat metrics when the screen size changes", async () => {
@@ -201,5 +187,80 @@ describe("SeatScopeApp", () => {
     expect(
       screen.getByLabelText<HTMLSelectElement>("Screen size").value,
     ).toBe("standard");
+  });
+
+  it("defaults to the generic screen size source, not a real theater", () => {
+    render(<SeatScopeApp />);
+
+    expect(
+      screen.getByRole("radio", { name: "Screen size" }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByLabelText("Theater")).not.toBeInTheDocument();
+  });
+
+  it("switches to a real theater and shows its disclosure", async () => {
+    const user = userEvent.setup();
+
+    render(<SeatScopeApp />);
+    await user.click(screen.getByRole("radio", { name: "Real theater" }));
+
+    expect(screen.queryByLabelText("Screen size")).not.toBeInTheDocument();
+    const theaterSelect =
+      screen.getByLabelText<HTMLSelectElement>("Theater");
+    expect(theaterSelect).toBeInTheDocument();
+    expect(screen.getByText(/is an approximation/)).toBeInTheDocument();
+  });
+
+  it("recalculates seat metrics when switching to a different real theater", async () => {
+    const user = userEvent.setup();
+
+    render(<SeatScopeApp />);
+    await user.click(screen.getByRole("radio", { name: "Real theater" }));
+    const summary = screen.getByRole("region", {
+      name: "Selected seat summary",
+    });
+    const distanceBefore = within(summary).getByText("Distance")
+      .nextElementSibling?.textContent;
+
+    await user.selectOptions(
+      screen.getByLabelText("Theater"),
+      "Egyptian Theatre",
+    );
+
+    const distanceAfter = within(summary).getByText("Distance")
+      .nextElementSibling?.textContent;
+
+    expect(distanceAfter).not.toBe(distanceBefore);
+  });
+
+  it("persists the selected theater to the URL and drops it when switching back to generic sizes", async () => {
+    const user = userEvent.setup();
+
+    render(<SeatScopeApp />);
+    await user.click(screen.getByRole("radio", { name: "Real theater" }));
+
+    expect(navigation.replace).toHaveBeenLastCalledWith(
+      expect.stringContaining("theater=tcl-chinese-theatre"),
+      { scroll: false },
+    );
+
+    await user.click(screen.getByRole("radio", { name: "Screen size" }));
+
+    const lastCallUrl = navigation.replace.mock.calls.at(-1)?.[0] as string;
+
+    expect(lastCallUrl).not.toContain("theater=");
+  });
+
+  it("loads directly into theater mode when the URL names a theater", () => {
+    navigation.searchParams = "theater=egyptian-theatre-hollywood";
+
+    render(<SeatScopeApp />);
+
+    expect(
+      screen.getByLabelText<HTMLSelectElement>("Theater").value,
+    ).toBe("egyptian-theatre-hollywood");
+    expect(
+      screen.getByRole("region", { name: "Selected seat summary" }),
+    ).toHaveTextContent("F22");
   });
 });
