@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { defaultAuditorium } from "@/lib/auditorium/default-auditorium";
@@ -8,7 +8,13 @@ import {
   calculateSeatMetrics,
   resolveSelectableSeat,
 } from "@/lib/auditorium/geometry";
+import {
+  defaultScreenPresetId,
+  findScreenPreset,
+  screenPresets,
+} from "@/lib/auditorium/screen-presets";
 import { AuditoriumPerspective } from "./AuditoriumPerspective";
+import { ScreenSizeSelector } from "./ScreenSizeSelector";
 import { SeatMetricsPanel } from "./SeatMetricsPanel";
 import { SeatMap } from "./SeatMap";
 import { ViewModeTabs, type ViewMode } from "./ViewModeTabs";
@@ -23,9 +29,20 @@ export function SeatScopeApp() {
   const [selectedSeatLabel, setSelectedSeatLabel] = useState(
     () => resolveSelectableSeat(defaultAuditorium, urlSeatLabel).label,
   );
+  const [screenPresetId, setScreenPresetId] = useState(defaultScreenPresetId);
   const [viewMode, setViewMode] = useState<ViewMode>("seats");
 
-  const metrics = calculateSeatMetrics(defaultAuditorium, selectedSeatLabel);
+  const auditorium = useMemo(() => {
+    const preset = findScreenPreset(screenPresetId);
+
+    return {
+      ...defaultAuditorium,
+      screen: preset.screen,
+      geometry: { ...defaultAuditorium.geometry, ...preset.geometry },
+    };
+  }, [screenPresetId]);
+
+  const metrics = calculateSeatMetrics(auditorium, selectedSeatLabel);
 
   useEffect(() => {
     if (urlSeatLabel === metrics.seat.label) {
@@ -48,7 +65,7 @@ export function SeatScopeApp() {
 
       <ViewModeTabs viewMode={viewMode} onViewModeChange={setViewMode} />
 
-      <section className="mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.55fr)]">
+      <section className="mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-[minmax(20rem,0.55fr)_minmax(0,1fr)]">
         <div
           id="seats-panel"
           role="tabpanel"
@@ -56,7 +73,7 @@ export function SeatScopeApp() {
           className={viewMode === "seats" ? "block" : "hidden lg:block"}
         >
           <SeatMap
-            auditorium={defaultAuditorium}
+            auditorium={auditorium}
             selectedSeatLabel={metrics.seat.label}
             onSelectSeat={(seat) => setSelectedSeatLabel(seat.label)}
           />
@@ -69,10 +86,12 @@ export function SeatScopeApp() {
           className={viewMode === "perspective" ? "block" : "hidden lg:block"}
         >
           <div className="space-y-4">
-            <AuditoriumPerspective
-              auditorium={defaultAuditorium}
-              metrics={metrics}
+            <ScreenSizeSelector
+              presets={screenPresets}
+              selectedPresetId={screenPresetId}
+              onSelectPreset={setScreenPresetId}
             />
+            <AuditoriumPerspective auditorium={auditorium} metrics={metrics} />
             <SeatMetricsPanel metrics={metrics} />
           </div>
         </div>

@@ -173,4 +173,33 @@ describe("SeatScopeApp", () => {
       screen.getByRole("img", { name: "3D view from seat H12" }),
     ).toBeInTheDocument();
   });
+
+  it("recalculates seat metrics when the screen size changes", async () => {
+    const user = userEvent.setup();
+
+    render(<SeatScopeApp />);
+    const summary = screen.getByRole("region", {
+      name: "Selected seat summary",
+    });
+    const distanceBefore = within(summary).getByText("Distance")
+      .nextElementSibling?.textContent;
+
+    await user.selectOptions(
+      screen.getByLabelText("Screen size"),
+      "IMAX Giant Screen",
+    );
+
+    const distanceAfter = within(summary).getByText("Distance")
+      .nextElementSibling?.textContent;
+
+    expect(distanceAfter).not.toBe(distanceBefore);
+  });
+
+  it("defaults to the standard multiplex screen size", () => {
+    render(<SeatScopeApp />);
+
+    expect(
+      screen.getByLabelText<HTMLSelectElement>("Screen size").value,
+    ).toBe("standard");
+  });
 });

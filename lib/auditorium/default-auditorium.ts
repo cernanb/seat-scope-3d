@@ -1,17 +1,15 @@
 import type { Auditorium } from "./types";
+import { defaultScreenPresetId, findScreenPreset } from "./screen-presets";
+
+const defaultScreenPreset = findScreenPreset(defaultScreenPresetId);
 
 export const defaultAuditorium: Auditorium = {
   id: "medium-auditorium",
   name: "Medium Auditorium",
   unit: "meters",
-  screen: {
-    widthMeters: 14,
-    heightMeters: 6,
-    bottomHeightMeters: 1.4,
-  },
+  screen: defaultScreenPreset.screen,
   geometry: {
-    frontClearanceMeters: 12,
-    rowSpacingMeters: 1.25,
+    ...defaultScreenPreset.geometry,
     seatSpacingMeters: 0.58,
     aisleWidthMeters: 0.95,
     rowElevationMeters: 0.28,

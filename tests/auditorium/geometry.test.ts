@@ -10,6 +10,7 @@ import {
   resolveSelectableSeat,
 } from "@/lib/auditorium/geometry";
 import { defaultAuditorium } from "@/lib/auditorium/default-auditorium";
+import { findScreenPreset } from "@/lib/auditorium/screen-presets";
 
 describe("auditorium geometry", () => {
   it("numbers seats across aisle gaps without counting the aisles", () => {
@@ -86,5 +87,19 @@ describe("auditorium geometry", () => {
     expect(frontMetrics.distanceToScreenMeters).toBeGreaterThanOrEqual(12);
     expect(frontMetrics.horizontalViewingAngleDegrees).toBeLessThanOrEqual(70);
     expect(frontMetrics.verticalViewingAngleDegrees).toBeLessThanOrEqual(35);
+  });
+
+  it("pushes the back row far enough from a giant screen to avoid an extreme angle", () => {
+    const preset = findScreenPreset("imax-giant");
+    const giantAuditorium = {
+      ...defaultAuditorium,
+      screen: preset.screen,
+      geometry: { ...defaultAuditorium.geometry, ...preset.geometry },
+    };
+
+    const backMetrics = calculateSeatMetrics(giantAuditorium, "J9");
+
+    expect(backMetrics.horizontalViewingAngleDegrees).toBeLessThanOrEqual(45);
+    expect(backMetrics.verticalViewingAngleDegrees).toBeLessThanOrEqual(35);
   });
 });

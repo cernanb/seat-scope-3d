@@ -13,6 +13,7 @@ import { getSeatCenter, listSeats } from "@/lib/auditorium/geometry";
 import type {
   Auditorium,
   Position3D,
+  Seat,
   SeatMetrics,
 } from "@/lib/auditorium/types";
 
@@ -63,7 +64,7 @@ export function AuditoriumPerspective({
     >
       <div
         aria-label={`3D view from seat ${metrics.seat.label}`}
-        className="h-[24rem] w-full cursor-grab touch-none active:cursor-grabbing"
+        className="h-[24rem] w-full cursor-grab touch-none active:cursor-grabbing lg:h-[34rem]"
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
           dragStart.current = { x: event.clientX, y: event.clientY };
@@ -108,88 +109,279 @@ function PerspectiveScene({
     };
   }, [auditorium, lookOffset.x, lookOffset.y]);
   const seats = useMemo(() => listSeats(auditorium), [auditorium]);
+  const roomWidth = auditorium.screen.widthMeters + 6;
   const rearZ =
     auditorium.geometry.frontClearanceMeters +
     (auditorium.rows.length - 1) * auditorium.geometry.rowSpacingMeters +
     2.5;
-  const roomWidth = auditorium.screen.widthMeters + 6;
+  const screenTop =
+    auditorium.screen.bottomHeightMeters + auditorium.screen.heightMeters;
 
   return (
     <>
-      <color attach="background" args={["#18181b"]} />
+      <color attach="background" args={["#0b0a0d"]} />
+      <fog attach="fog" args={["#0b0a0d", 16, 46]} />
       <ambientLight intensity={0.55} />
-      <directionalLight position={[0, 6, 7]} intensity={1.8} />
+      <directionalLight position={[0, 7, 6]} intensity={1.7} />
+      <pointLight
+        position={[0, screenTop + 1.2, 2.5]}
+        color="#fff3d6"
+        intensity={1.8}
+        distance={26}
+        decay={2}
+      />
       <FixedSeatCamera
         auditorium={auditorium}
         position={metrics.viewingPosition}
         target={target}
       />
 
-      <mesh position={[0, -0.04, rearZ / 2]} rotation={[-Math.PI / 2, 0, 0]}>
+      <TheaterShell roomWidth={roomWidth} rearZ={rearZ} />
+      <TheaterFloor auditorium={auditorium} roomWidth={roomWidth} />
+      <Screen auditorium={auditorium} />
+      <AisleLights auditorium={auditorium} roomWidth={roomWidth} />
+
+      {seats.map((seat) => (
+        <SeatMesh
+          key={seat.label}
+          seat={seat}
+          isSelected={seat.label === metrics.seat.label}
+          center={getSeatCenter(auditorium, seat)}
+        />
+      ))}
+    </>
+  );
+}
+
+function TheaterShell({
+  roomWidth,
+  rearZ,
+}: {
+  roomWidth: number;
+  rearZ: number;
+}) {
+  const wallHeight = 8.5;
+  const halfWidth = roomWidth / 2;
+
+  return (
+    <>
+      <mesh position={[0, wallHeight / 2, rearZ]}>
+        <planeGeometry args={[roomWidth, wallHeight]} />
+        <meshStandardMaterial color="#221e29" roughness={1} side={DoubleSide} />
+      </mesh>
+
+      <mesh
+        position={[-halfWidth, wallHeight / 2, rearZ / 2]}
+        rotation={[0, Math.PI / 2, 0]}
+      >
+        <planeGeometry args={[rearZ, wallHeight]} />
+        <meshStandardMaterial color="#1c1823" roughness={1} side={DoubleSide} />
+      </mesh>
+
+      <mesh
+        position={[halfWidth, wallHeight / 2, rearZ / 2]}
+        rotation={[0, -Math.PI / 2, 0]}
+      >
+        <planeGeometry args={[rearZ, wallHeight]} />
+        <meshStandardMaterial color="#1c1823" roughness={1} side={DoubleSide} />
+      </mesh>
+
+      <mesh
+        position={[0, wallHeight, rearZ / 2]}
+        rotation={[Math.PI / 2, 0, 0]}
+      >
         <planeGeometry args={[roomWidth, rearZ]} />
-        <meshStandardMaterial color="#27272a" roughness={0.9} />
+        <meshStandardMaterial color="#161320" roughness={1} side={DoubleSide} />
       </mesh>
 
+      <mesh position={[-halfWidth + 0.4, wallHeight / 2 - 0.5, 3]}>
+        <boxGeometry args={[0.5, wallHeight - 1, 3.2]} />
+        <meshStandardMaterial color="#611a28" roughness={0.85} />
+      </mesh>
+      <mesh position={[halfWidth - 0.4, wallHeight / 2 - 0.5, 3]}>
+        <boxGeometry args={[0.5, wallHeight - 1, 3.2]} />
+        <meshStandardMaterial color="#611a28" roughness={0.85} />
+      </mesh>
+    </>
+  );
+}
+
+function TheaterFloor({
+  auditorium,
+  roomWidth,
+}: {
+  auditorium: Auditorium;
+  roomWidth: number;
+}) {
+  const { rows, geometry } = auditorium;
+  const stepDepth = geometry.rowSpacingMeters;
+  const stageFrontZ = geometry.frontClearanceMeters - stepDepth / 2;
+
+  return (
+    <>
       <mesh
-        position={[
-          0,
-          auditorium.screen.bottomHeightMeters + auditorium.screen.heightMeters / 2,
-          -0.08,
-        ]}
+        position={[0, -0.03, stageFrontZ / 2]}
+        rotation={[-Math.PI / 2, 0, 0]}
       >
-        <planeGeometry
-          args={[
-            auditorium.screen.widthMeters,
-            auditorium.screen.heightMeters,
-          ]}
-        />
-        <meshStandardMaterial
-          color="#fafafa"
-          emissive="#ffffff"
-          emissiveIntensity={0.18}
-          side={DoubleSide}
-        />
+        <planeGeometry args={[roomWidth, stageFrontZ]} />
+        <meshStandardMaterial color="#2c1920" roughness={0.9} />
       </mesh>
 
-      <mesh
-        position={[
-          0,
-          auditorium.screen.bottomHeightMeters +
-            auditorium.screen.heightMeters +
-            0.15,
-          -0.15,
-        ]}
-      >
-        <boxGeometry args={[auditorium.screen.widthMeters + 0.4, 0.18, 0.12]} />
-        <meshStandardMaterial color="#52525b" roughness={0.6} />
-      </mesh>
-
-      {seats.map((seat) => {
-        const isSelected = seat.label === metrics.seat.label;
-        const seatCenter = getSeatCenter(auditorium, seat);
+      {rows.map((row, index) => {
+        const topY = index * geometry.rowElevationMeters;
+        const centerZ =
+          geometry.frontClearanceMeters + index * geometry.rowSpacingMeters;
 
         return (
-          <mesh
-            key={seat.label}
-            position={[seatCenter.x, seatCenter.y, seatCenter.z]}
-          >
-            <boxGeometry
-              args={isSelected ? [0.46, 0.26, 0.34] : [0.34, 0.18, 0.26]}
-            />
-            <meshStandardMaterial
-              color={
-                isSelected
-                  ? "#22c55e"
-                  : seat.availability === "available"
-                    ? "#71717a"
-                    : "#3f3f46"
-              }
-              roughness={0.7}
-            />
-          </mesh>
+          <group key={row.label}>
+            <mesh position={[0, topY - 0.03, centerZ]}>
+              <boxGeometry args={[roomWidth, 0.06, stepDepth]} />
+              <meshStandardMaterial color="#432635" roughness={0.95} />
+            </mesh>
+            {index > 0 ? (
+              <mesh position={[0, topY / 2, centerZ - stepDepth / 2]}>
+                <boxGeometry args={[roomWidth, topY, 0.06]} />
+                <meshStandardMaterial color="#22131a" roughness={0.95} />
+              </mesh>
+            ) : null}
+          </group>
         );
       })}
     </>
+  );
+}
+
+function Screen({ auditorium }: { auditorium: Auditorium }) {
+  const { screen } = auditorium;
+  const bottom = screen.bottomHeightMeters;
+  const top = bottom + screen.heightMeters;
+  const centerY = (bottom + top) / 2;
+  const frameThickness = 0.32;
+  const frameDepth = 0.16;
+  const halfWidth = screen.widthMeters / 2;
+
+  return (
+    <group position={[0, 0, -0.1]}>
+      <mesh position={[0, centerY, 0.02]}>
+        <planeGeometry args={[screen.widthMeters, screen.heightMeters]} />
+        <meshStandardMaterial
+          color="#fafafa"
+          emissive="#ffffff"
+          emissiveIntensity={0.32}
+          side={DoubleSide}
+          fog={false}
+        />
+      </mesh>
+
+      <mesh position={[0, top + frameThickness / 2, 0]}>
+        <boxGeometry
+          args={[
+            screen.widthMeters + frameThickness * 2,
+            frameThickness,
+            frameDepth,
+          ]}
+        />
+        <meshStandardMaterial color="#3f3f46" roughness={0.45} />
+      </mesh>
+      <mesh position={[0, bottom - frameThickness / 2, 0]}>
+        <boxGeometry
+          args={[
+            screen.widthMeters + frameThickness * 2,
+            frameThickness,
+            frameDepth,
+          ]}
+        />
+        <meshStandardMaterial color="#3f3f46" roughness={0.45} />
+      </mesh>
+      <mesh position={[-halfWidth - frameThickness / 2, centerY, 0]}>
+        <boxGeometry args={[frameThickness, screen.heightMeters, frameDepth]} />
+        <meshStandardMaterial color="#3f3f46" roughness={0.45} />
+      </mesh>
+      <mesh position={[halfWidth + frameThickness / 2, centerY, 0]}>
+        <boxGeometry args={[frameThickness, screen.heightMeters, frameDepth]} />
+        <meshStandardMaterial color="#3f3f46" roughness={0.45} />
+      </mesh>
+    </group>
+  );
+}
+
+function AisleLights({
+  auditorium,
+  roomWidth,
+}: {
+  auditorium: Auditorium;
+  roomWidth: number;
+}) {
+  const { rows, geometry } = auditorium;
+  const aisleX = roomWidth / 2 - 0.5;
+
+  return (
+    <>
+      {rows.map((row, index) => {
+        const topY = index * geometry.rowElevationMeters;
+        const centerZ =
+          geometry.frontClearanceMeters + index * geometry.rowSpacingMeters;
+
+        return (
+          <group key={row.label}>
+            <mesh position={[-aisleX, topY + 0.02, centerZ]}>
+              <boxGeometry args={[0.12, 0.02, 0.3]} />
+              <meshStandardMaterial
+                color="#f59e0b"
+                emissive="#f59e0b"
+                emissiveIntensity={0.9}
+              />
+            </mesh>
+            <mesh position={[aisleX, topY + 0.02, centerZ]}>
+              <boxGeometry args={[0.12, 0.02, 0.3]} />
+              <meshStandardMaterial
+                color="#f59e0b"
+                emissive="#f59e0b"
+                emissiveIntensity={0.9}
+              />
+            </mesh>
+          </group>
+        );
+      })}
+    </>
+  );
+}
+
+function SeatMesh({
+  seat,
+  isSelected,
+  center,
+}: {
+  seat: Seat;
+  isSelected: boolean;
+  center: Position3D;
+}) {
+  const color = isSelected
+    ? "#22c55e"
+    : seat.availability === "available"
+      ? "#71717f"
+      : "#6b2c3a";
+
+  return (
+    <group position={[center.x, center.y, center.z]}>
+      <mesh position={[0, -0.07, -0.04]}>
+        <boxGeometry args={[0.42, 0.14, 0.4]} />
+        <meshStandardMaterial color={color} roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 0.15, 0.16]} rotation={[0.15, 0, 0]}>
+        <boxGeometry args={[0.42, 0.4, 0.1]} />
+        <meshStandardMaterial color={color} roughness={0.8} />
+      </mesh>
+      {isSelected ? (
+        <pointLight
+          position={[0, 0.5, 0.2]}
+          color="#22c55e"
+          intensity={0.5}
+          distance={1.4}
+          decay={2}
+        />
+      ) : null}
+    </group>
   );
 }
 
