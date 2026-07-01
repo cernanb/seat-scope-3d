@@ -79,4 +79,12 @@ describe("auditorium geometry", () => {
       backMetrics.distanceToScreenMeters,
     );
   });
+
+  it("keeps the front row close without exceeding an extreme viewing angle", () => {
+    const frontMetrics = calculateSeatMetrics(defaultAuditorium, "A10");
+
+    expect(frontMetrics.distanceToScreenMeters).toBeGreaterThanOrEqual(12);
+    expect(frontMetrics.horizontalViewingAngleDegrees).toBeLessThanOrEqual(70);
+    expect(frontMetrics.verticalViewingAngleDegrees).toBeLessThanOrEqual(35);
+  });
 });

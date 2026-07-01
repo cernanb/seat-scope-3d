@@ -10,7 +10,7 @@ export const defaultAuditorium: Auditorium = {
     bottomHeightMeters: 1.4,
   },
   geometry: {
-    frontClearanceMeters: 7,
+    frontClearanceMeters: 12,
     rowSpacingMeters: 1.25,
     seatSpacingMeters: 0.58,
     aisleWidthMeters: 0.95,

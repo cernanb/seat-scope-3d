@@ -26,6 +26,22 @@ test("lets a user choose a seat and inspect the 3D perspective", async ({
   await expect(canvas).toBeVisible();
   await expect.poll(() => getCanvasClientArea(canvas)).toBeGreaterThan(150_000);
   await expect.poll(() => countVisibleCanvasPixels(canvas)).toBeGreaterThan(20);
+
+  await page.getByRole("button", { name: "A10" }).click();
+
+  await expect(page).toHaveURL(/seat=A10/);
+  await expect(
+    page.getByRole("region", { name: "Selected seat summary" }),
+  ).toContainText("A10");
+  await expect(
+    page.getByRole("region", { name: "Selected seat summary" }),
+  ).toContainText(/Horizontal angle\s*59\./);
+  const frontRowPerspective = page.getByRole("img", {
+    name: "3D view from seat A10",
+  });
+  await expect
+    .poll(() => countVisibleCanvasPixels(frontRowPerspective.locator("canvas")))
+    .toBeGreaterThan(20);
 });
 
 async function getCanvasClientArea(canvas: Locator) {

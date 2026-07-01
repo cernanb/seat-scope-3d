@@ -1,9 +1,13 @@
 "use client";
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
-import { DoubleSide, type PerspectiveCamera as ThreePerspectiveCamera } from "three";
+import {
+  DoubleSide,
+  Vector3,
+  type PerspectiveCamera as ThreePerspectiveCamera,
+} from "three";
 
 import { getSeatCenter, listSeats } from "@/lib/auditorium/geometry";
 import type {
@@ -115,7 +119,11 @@ function PerspectiveScene({
       <color attach="background" args={["#18181b"]} />
       <ambientLight intensity={0.55} />
       <directionalLight position={[0, 6, 7]} intensity={1.8} />
-      <FixedSeatCamera position={metrics.viewingPosition} target={target} />
+      <FixedSeatCamera
+        auditorium={auditorium}
+        position={metrics.viewingPosition}
+        target={target}
+      />
 
       <mesh position={[0, -0.04, rearZ / 2]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[roomWidth, rearZ]} />
@@ -186,13 +194,20 @@ function PerspectiveScene({
 }
 
 function FixedSeatCamera({
+  auditorium,
   position,
   target,
 }: {
+  auditorium: Auditorium;
   position: Position3D;
   target: Position3D;
 }) {
   const cameraRef = useRef<ThreePerspectiveCamera>(null);
+  const size = useThree((state) => state.size);
+  const fov = useMemo(
+    () => calculateScreenFramingFov(auditorium, position, target, size),
+    [auditorium, position, size, target],
+  );
 
   useLayoutEffect(() => {
     const camera = cameraRef.current;
@@ -202,18 +217,86 @@ function FixedSeatCamera({
     }
 
     camera.position.set(position.x, position.y, position.z);
+    camera.fov = fov;
     camera.lookAt(target.x, target.y, target.z);
     camera.updateProjectionMatrix();
-  }, [position.x, position.y, position.z, target.x, target.y, target.z]);
+  }, [
+    fov,
+    position.x,
+    position.y,
+    position.z,
+    target.x,
+    target.y,
+    target.z,
+  ]);
 
   return (
     <PerspectiveCamera
       ref={cameraRef}
       makeDefault
-      fov={50}
+      fov={fov}
       near={0.1}
       far={100}
       position={[position.x, position.y, position.z]}
     />
   );
+}
+
+function calculateScreenFramingFov(
+  auditorium: Auditorium,
+  position: Position3D,
+  target: Position3D,
+  size: { width: number; height: number },
+) {
+  const cameraPosition = new Vector3(position.x, position.y, position.z);
+  const lookTarget = new Vector3(target.x, target.y, target.z);
+  const forward = lookTarget.sub(cameraPosition).normalize();
+  const right = new Vector3().crossVectors(forward, new Vector3(0, 1, 0));
+
+  if (right.lengthSq() === 0) {
+    return 50;
+  }
+
+  right.normalize();
+  const up = new Vector3().crossVectors(right, forward).normalize();
+  const aspectRatio = size.height > 0 ? size.width / size.height : 1;
+  const halfWidth = auditorium.screen.widthMeters / 2;
+  const bottom = auditorium.screen.bottomHeightMeters;
+  const top = bottom + auditorium.screen.heightMeters;
+  const screenCorners = [
+    new Vector3(-halfWidth, bottom, 0),
+    new Vector3(halfWidth, bottom, 0),
+    new Vector3(-halfWidth, top, 0),
+    new Vector3(halfWidth, top, 0),
+  ];
+  let halfHorizontalFov = 0;
+  let halfVerticalFov = 0;
+
+  for (const corner of screenCorners) {
+    const toCorner = corner.sub(cameraPosition);
+    const depth = toCorner.dot(forward);
+
+    if (depth <= 0) {
+      continue;
+    }
+
+    halfHorizontalFov = Math.max(
+      halfHorizontalFov,
+      Math.atan(Math.abs(toCorner.dot(right)) / depth),
+    );
+    halfVerticalFov = Math.max(
+      halfVerticalFov,
+      Math.atan(Math.abs(toCorner.dot(up)) / depth),
+    );
+  }
+
+  const horizontalAsVerticalFov = Math.atan(
+    Math.tan(halfHorizontalFov) / aspectRatio,
+  );
+  const framingPaddingDegrees = 8;
+  const fovDegrees =
+    (Math.max(halfVerticalFov, horizontalAsVerticalFov) * 2 * 180) / Math.PI +
+    framingPaddingDegrees;
+
+  return clamp(fovDegrees, 50, 82);
 }
