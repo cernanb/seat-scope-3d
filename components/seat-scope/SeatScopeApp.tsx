@@ -150,6 +150,18 @@ export function SeatScopeApp() {
           <SeatMetricsPanel metrics={metrics} />
         </div>
       </div>
+
+      <footer className="mx-auto w-full max-w-7xl text-sm text-zinc-500">
+        Brought to you by{" "}
+        <a
+          href="https://howtowatchfilm.com/"
+          target="_blank"
+          rel="noreferrer"
+          className="underline hover:text-zinc-700"
+        >
+          How to Watch Film
+        </a>
+      </footer>
     </main>
   );
 }
