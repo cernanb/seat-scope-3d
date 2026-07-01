@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
-import { DoubleSide } from "three";
+import { DoubleSide, type PerspectiveCamera as ThreePerspectiveCamera } from "three";
 
 import { getSeatCenter, listSeats } from "@/lib/auditorium/geometry";
 import type {
@@ -58,7 +58,8 @@ export function AuditoriumPerspective({
       className="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-950 shadow-sm"
     >
       <div
-        className="h-[24rem] cursor-grab touch-none active:cursor-grabbing"
+        aria-label={`3D view from seat ${metrics.seat.label}`}
+        className="h-[24rem] w-full cursor-grab touch-none active:cursor-grabbing"
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
           dragStart.current = { x: event.clientX, y: event.clientY };
@@ -70,11 +71,11 @@ export function AuditoriumPerspective({
         onPointerCancel={() => {
           dragStart.current = null;
         }}
+        role="img"
       >
         <Canvas
-          aria-label={`3D view from seat ${metrics.seat.label}`}
+          className="h-full w-full"
           gl={{ preserveDrawingBuffer: true }}
-          role="img"
           shadows
         >
           <PerspectiveScene
@@ -191,17 +192,28 @@ function FixedSeatCamera({
   position: Position3D;
   target: Position3D;
 }) {
+  const cameraRef = useRef<ThreePerspectiveCamera>(null);
+
+  useLayoutEffect(() => {
+    const camera = cameraRef.current;
+
+    if (!camera) {
+      return;
+    }
+
+    camera.position.set(position.x, position.y, position.z);
+    camera.lookAt(target.x, target.y, target.z);
+    camera.updateProjectionMatrix();
+  }, [position.x, position.y, position.z, target.x, target.y, target.z]);
+
   return (
     <PerspectiveCamera
+      ref={cameraRef}
       makeDefault
       fov={50}
       near={0.1}
       far={100}
       position={[position.x, position.y, position.z]}
-      onUpdate={(camera) => {
-        camera.lookAt(target.x, target.y, target.z);
-        camera.updateProjectionMatrix();
-      }}
     />
   );
 }
