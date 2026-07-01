@@ -66,11 +66,11 @@ describe("SeatScopeApp", () => {
     });
   });
 
-  it("syncs a user-selected seat back to the URL", async () => {
+  it("syncs a clicked available seat back to the URL", async () => {
     const user = userEvent.setup();
 
     render(<SeatScopeApp />);
-    await user.selectOptions(screen.getByLabelText("Selected seat"), "H12");
+    await user.click(screen.getByRole("button", { name: "H12" }));
     const summary = screen.getByRole("region", {
       name: "Selected seat summary",
     });
@@ -79,5 +79,45 @@ describe("SeatScopeApp", () => {
     expect(navigation.replace).toHaveBeenLastCalledWith("/?seat=H12", {
       scroll: false,
     });
+  });
+
+  it("renders the screen before the seating rows", () => {
+    render(<SeatScopeApp />);
+
+    const seatMap = screen.getByRole("grid", { name: "Seat map" });
+    const rowA = screen.getByRole("row", { name: "Row A" });
+
+    expect(
+      within(seatMap).getByText("Screen", { selector: "div" }),
+    ).toBeInTheDocument();
+    expect(
+      seatMap.compareDocumentPosition(rowA) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("keeps unavailable seats visible but disabled", () => {
+    render(<SeatScopeApp />);
+
+    expect(screen.getByRole("button", { name: "E9 unavailable" })).toBeDisabled();
+  });
+
+  it("renders aisles as gaps instead of disabled seats", () => {
+    render(<SeatScopeApp />);
+
+    expect(
+      screen.queryByRole("button", { name: /aisle/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("moves keyboard focus across aisle gaps to the next available seat", async () => {
+    const user = userEvent.setup();
+
+    render(<SeatScopeApp />);
+    const seatF6 = screen.getByRole("button", { name: "F6" });
+
+    seatF6.focus();
+    await user.keyboard("{ArrowRight}");
+
+    expect(screen.getByRole("button", { name: "F7" })).toHaveFocus();
   });
 });
