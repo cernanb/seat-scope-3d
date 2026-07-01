@@ -120,4 +120,32 @@ describe("SeatScopeApp", () => {
 
     expect(screen.getByRole("button", { name: "F7" })).toHaveFocus();
   });
+
+  it("shows apparent screen size metrics for the selected seat", () => {
+    render(<SeatScopeApp />);
+    const summary = screen.getByRole("region", {
+      name: "Selected seat summary",
+    });
+
+    expect(within(summary).getByText("Distance")).toBeInTheDocument();
+    expect(within(summary).getByText("Horizontal angle")).toBeInTheDocument();
+    expect(within(summary).getByText("Vertical angle")).toBeInTheDocument();
+  });
+
+  it("switches mobile view modes without losing the selected seat", async () => {
+    const user = userEvent.setup();
+
+    render(<SeatScopeApp />);
+    await user.click(screen.getByRole("button", { name: "H12" }));
+    await user.click(screen.getByRole("tab", { name: "Perspective" }));
+    const summary = screen.getByRole("region", {
+      name: "Selected seat summary",
+    });
+
+    expect(screen.getByRole("tab", { name: "Perspective" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(within(summary).getByText("H12")).toBeInTheDocument();
+  });
 });

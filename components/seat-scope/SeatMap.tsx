@@ -30,7 +30,7 @@ export function SeatMap({
       >
         <div
           aria-hidden="true"
-          className="mx-auto mb-6 h-8 rounded-sm border border-zinc-300 bg-zinc-100 text-center text-xs font-medium uppercase leading-8 tracking-wide text-zinc-500"
+          className="mx-auto mb-6 h-8 rounded-sm border border-zinc-300 bg-zinc-100 pl-4 text-left text-xs font-medium uppercase leading-8 tracking-wide text-zinc-500 md:pl-0 md:text-center"
         >
           Screen
         </div>
