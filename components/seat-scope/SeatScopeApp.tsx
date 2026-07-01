@@ -8,6 +8,7 @@ import {
   calculateSeatMetrics,
   resolveSelectableSeat,
 } from "@/lib/auditorium/geometry";
+import { AuditoriumPerspective } from "./AuditoriumPerspective";
 import { SeatMetricsPanel } from "./SeatMetricsPanel";
 import { SeatMap } from "./SeatMap";
 import { ViewModeTabs, type ViewMode } from "./ViewModeTabs";
@@ -67,7 +68,13 @@ export function SeatScopeApp() {
           aria-labelledby="perspective-tab"
           className={viewMode === "perspective" ? "block" : "hidden lg:block"}
         >
-          <SeatMetricsPanel metrics={metrics} />
+          <div className="space-y-4">
+            <AuditoriumPerspective
+              auditorium={defaultAuditorium}
+              metrics={metrics}
+            />
+            <SeatMetricsPanel metrics={metrics} />
+          </div>
         </div>
       </section>
     </main>

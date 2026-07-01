@@ -8,7 +8,7 @@ export function SeatMetricsPanel({ metrics }: SeatMetricsPanelProps) {
   return (
     <section
       aria-label="Selected seat summary"
-      className="min-h-[24rem] rounded-lg border border-zinc-200 bg-white p-5 shadow-sm"
+      className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm"
     >
       <h2 className="text-sm font-medium text-zinc-500">Selected seat</h2>
       <p className="mt-2 text-3xl font-semibold">{metrics.seat.label}</p>

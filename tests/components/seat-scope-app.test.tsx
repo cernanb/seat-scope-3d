@@ -4,6 +4,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SeatScopeApp } from "@/components/seat-scope/SeatScopeApp";
 
+vi.mock("@react-three/fiber", () => ({
+  Canvas: ({ "aria-label": ariaLabel }: { "aria-label"?: string }) => (
+    <div aria-label={ariaLabel} role="img" />
+  ),
+}));
+
+vi.mock("@react-three/drei", () => ({
+  PerspectiveCamera: () => null,
+}));
+
 const navigation = vi.hoisted(() => ({
   pathname: "/",
   replace: vi.fn(),
@@ -147,5 +157,20 @@ describe("SeatScopeApp", () => {
       "true",
     );
     expect(within(summary).getByText("H12")).toBeInTheDocument();
+  });
+
+  it("renders a 3D auditorium perspective from the selected seat", async () => {
+    const user = userEvent.setup();
+
+    render(<SeatScopeApp />);
+    await user.click(screen.getByRole("button", { name: "H12" }));
+    await user.click(screen.getByRole("tab", { name: "Perspective" }));
+
+    expect(
+      screen.getByRole("region", { name: "3D auditorium perspective" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: "3D view from seat H12" }),
+    ).toBeInTheDocument();
   });
 });
