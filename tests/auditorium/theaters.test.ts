@@ -48,6 +48,51 @@ describe("theaters", () => {
     }
   });
 
+  it("matches the real seating capacity for the Irvine Spectrum IMAX auditorium", () => {
+    const theater = findTheater(
+      "regal-edwards-irvine-spectrum-auditorium-12-imax",
+    );
+    const totalSeats = theater.rows.reduce(
+      (sum, row) => sum + row.seatCount,
+      0,
+    );
+
+    expect(totalSeats).toBe(387);
+  });
+
+  it("centers the Irvine Spectrum IMAX default seat exactly in its row", () => {
+    const theater = findTheater(
+      "regal-edwards-irvine-spectrum-auditorium-12-imax",
+    );
+    const rowJ = theater.rows.find((row) => row.label === "J");
+
+    expect(rowJ?.seatCount).toBe(39);
+    expect(theater.defaultSeatLabel).toBe("J20");
+  });
+
+  it("matches the confirmed exact row counts for the Irvine Spectrum IMAX auditorium", () => {
+    const theater = findTheater(
+      "regal-edwards-irvine-spectrum-auditorium-12-imax",
+    );
+    const seatCountByLabel = Object.fromEntries(
+      theater.rows.map((row) => [row.label, row.seatCount]),
+    );
+
+    expect(seatCountByLabel.A).toBe(22);
+    expect(seatCountByLabel.B).toBe(20);
+    expect(seatCountByLabel.C).toBe(26);
+  });
+
+  it("splits the Irvine Spectrum IMAX auditorium's last row around a center gap", () => {
+    const theater = findTheater(
+      "regal-edwards-irvine-spectrum-auditorium-12-imax",
+    );
+    const rowM = theater.rows.find((row) => row.label === "M");
+
+    expect(rowM?.seatCount).toBe(13);
+    expect(rowM?.aisleAfterSeatNumbers).toEqual([6]);
+  });
+
   it("finds a theater by id", () => {
     expect(findTheater("egyptian-theatre-hollywood").id).toBe(
       "egyptian-theatre-hollywood",

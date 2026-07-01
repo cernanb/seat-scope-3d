@@ -76,6 +76,26 @@ test("lets a user switch to a real theater and see its own seat chart and disclo
   await expect(page).not.toHaveURL(/theater=/);
 });
 
+test("centers every row and the screen on the same axis even when row widths differ", async ({
+  page,
+}) => {
+  await page.goto("/?theater=regal-edwards-irvine-spectrum-auditorium-12-imax");
+
+  const screenBar = page.getByText("Screen", { exact: true });
+  await expect(screenBar).toBeVisible();
+  const screenBox = await screenBar.boundingBox();
+  const screenCenter = screenBox!.x + screenBox!.width / 2;
+
+  for (const rowLabel of ["A", "B", "C", "D", "L", "M"]) {
+    const row = page.getByRole("row", { name: `Row ${rowLabel}` });
+    const firstSeat = await row.locator("button").first().boundingBox();
+    const lastSeat = await row.locator("button").last().boundingBox();
+    const rowCenter = (firstSeat!.x + (lastSeat!.x + lastSeat!.width)) / 2;
+
+    expect(Math.abs(rowCenter - screenCenter)).toBeLessThan(1);
+  }
+});
+
 async function getCanvasClientArea(canvas: Locator) {
   return canvas.evaluate((element) => element.clientWidth * element.clientHeight);
 }

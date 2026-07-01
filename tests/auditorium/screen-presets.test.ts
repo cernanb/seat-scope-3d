@@ -56,4 +56,16 @@ describe("screen presets", () => {
       expect(preset.geometry.rowSpacingMeters).toBeLessThanOrEqual(2);
     }
   });
+
+  it("matches the real IMAX Digital aspect ratio (1.90:1)", () => {
+    const { widthMeters, heightMeters } = findScreenPreset("imax-digital").screen;
+
+    expect(widthMeters / heightMeters).toBeCloseTo(1.9, 1);
+  });
+
+  it("matches the real 15/70mm IMAX aspect ratio (1.43:1)", () => {
+    const { widthMeters, heightMeters } = findScreenPreset("imax-giant").screen;
+
+    expect(widthMeters / heightMeters).toBeCloseTo(1.43, 1);
+  });
 });

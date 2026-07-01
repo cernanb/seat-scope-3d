@@ -2,7 +2,7 @@
 
 import type { KeyboardEvent } from "react";
 
-import type { Auditorium, Seat } from "@/lib/auditorium/types";
+import type { Auditorium, Row, Seat } from "@/lib/auditorium/types";
 import { listSeats } from "@/lib/auditorium/geometry";
 
 type SeatMapProps = {
@@ -11,12 +11,35 @@ type SeatMapProps = {
   onSelectSeat: (seat: Seat) => void;
 };
 
+// Matches the rendered size of a seat button (h-7 w-7), an aisle spacer
+// (w-3), and the flex gap between every item in a row (gap-0.5). Rows with
+// different seat counts need a shared, explicit width to center against -
+// without it, a `justify-center` flex box that's wider than its own row
+// (common once a row has more seats than the narrower rows around it)
+// overflows asymmetrically toward the end side instead of staying centered.
+const SEAT_WIDTH_PX = 28;
+const AISLE_WIDTH_PX = 12;
+const GAP_PX = 2;
+
+function getRowContentWidthPx(row: Row): number {
+  const itemCount = row.seatCount + row.aisleAfterSeatNumbers.length;
+  const itemsWidthPx =
+    row.seatCount * SEAT_WIDTH_PX +
+    row.aisleAfterSeatNumbers.length * AISLE_WIDTH_PX;
+  const gapsWidthPx = Math.max(itemCount - 1, 0) * GAP_PX;
+
+  return itemsWidthPx + gapsWidthPx;
+}
+
 export function SeatMap({
   auditorium,
   selectedSeatLabel,
   onSelectSeat,
 }: SeatMapProps) {
   const seats = listSeats(auditorium);
+  const maxRowWidthPx = Math.max(
+    ...auditorium.rows.map(getRowContentWidthPx),
+  );
 
   return (
     <section
@@ -28,11 +51,15 @@ export function SeatMap({
         aria-label="Seat map"
         className="min-w-[46rem] space-y-2"
       >
-        <div
-          aria-hidden="true"
-          className="mx-auto mb-6 h-8 rounded-sm border border-zinc-300 bg-zinc-100 pl-4 text-left text-xs font-medium uppercase leading-8 tracking-wide text-zinc-500 md:pl-0 md:text-center"
-        >
-          Screen
+        <div className="grid grid-cols-[2rem_1fr] items-center gap-3 mb-6">
+          <div />
+          <div
+            aria-hidden="true"
+            className="mx-auto h-8 rounded-sm border border-zinc-300 bg-zinc-100 text-center text-xs font-medium uppercase leading-8 tracking-wide text-zinc-500"
+            style={{ width: maxRowWidthPx }}
+          >
+            Screen
+          </div>
         </div>
 
         {auditorium.rows.map((row) => {
@@ -48,7 +75,10 @@ export function SeatMap({
               <div className="text-center text-sm font-medium text-zinc-500">
                 {row.label}
               </div>
-              <div className="flex items-center justify-center gap-0.5">
+              <div
+                className="mx-auto flex items-center justify-center gap-0.5"
+                style={{ width: maxRowWidthPx }}
+              >
                 {rowSeats.map((seat) => (
                   <SeatSlot
                     key={seat.label}

@@ -34,15 +34,17 @@ export const screenPresets: ScreenPreset[] = [
   {
     id: "imax-digital",
     label: "IMAX Digital",
-    description: "22 x 12 m - typical multiplex IMAX screen",
-    screen: { widthMeters: 22, heightMeters: 12, bottomHeightMeters: 1.8 },
+    // Digital IMAX's official aspect ratio is 1.90:1.
+    description: "22 x 11.6 m - typical multiplex IMAX screen",
+    screen: { widthMeters: 22, heightMeters: 11.6, bottomHeightMeters: 1.8 },
     geometry: scaleGeometryToScreenWidth(22),
   },
   {
     id: "imax-giant",
     label: "IMAX Giant Screen",
-    description: "30 x 22 m - true 15/70mm IMAX giant screen",
-    screen: { widthMeters: 30, heightMeters: 22, bottomHeightMeters: 2.2 },
+    // True 15/70mm IMAX's aspect ratio is 1.43:1.
+    description: "30 x 21 m - true 15/70mm IMAX giant screen",
+    screen: { widthMeters: 30, heightMeters: 21, bottomHeightMeters: 2.2 },
     geometry: scaleGeometryToScreenWidth(30),
   },
 ];

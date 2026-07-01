@@ -121,7 +121,7 @@ export function SeatScopeApp() {
         <h1 className="text-4xl font-semibold">Seat Scope 3D</h1>
       </header>
 
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl">
         <SeatMap
           auditorium={auditorium}
           selectedSeatLabel={metrics.seat.label}

@@ -64,7 +64,7 @@ export function AuditoriumPerspective({
     >
       <div
         aria-label={`3D view from seat ${metrics.seat.label}`}
-        className="h-[24rem] w-full cursor-grab touch-none active:cursor-grabbing lg:h-[34rem]"
+        className="h-[24rem] w-full cursor-grab touch-none active:cursor-grabbing lg:h-[34rem] xl:h-[38rem] 2xl:h-[42rem]"
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
           dragStart.current = { x: event.clientX, y: event.clientY };
