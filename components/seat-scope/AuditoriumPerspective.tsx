@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
 import {
@@ -13,6 +13,7 @@ import {
 } from "three";
 
 import { getSeatCenter, listSeats } from "@/lib/auditorium/geometry";
+import { createFilmFrameTexture } from "./film-frame-texture";
 import type {
   Auditorium,
   Position3D,
@@ -39,7 +40,18 @@ const screenCenter = (auditorium: Auditorium): Position3D => ({
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
-const wallHeightMeters = 8.5;
+const minimumWallHeightMeters = 8.5;
+// The room needs a wall just behind the screen plane; without it, seats with
+// a wide view see the screen floating in a black void.
+const screenWallZ = -0.4;
+
+// Giant-format screens (IMAX 15/70 tops out above 23 m) need the room to
+// grow with them, or the fixed ceiling plane slices the picture off.
+const roomWallHeight = (auditorium: Auditorium) =>
+  Math.max(
+    minimumWallHeightMeters,
+    auditorium.screen.bottomHeightMeters + auditorium.screen.heightMeters + 1.5,
+  );
 
 export function AuditoriumPerspective({
   auditorium,
@@ -119,20 +131,22 @@ function PerspectiveScene({
     auditorium.geometry.frontClearanceMeters +
     (auditorium.rows.length - 1) * auditorium.geometry.rowSpacingMeters +
     2.5;
-  const screenTop =
-    auditorium.screen.bottomHeightMeters + auditorium.screen.heightMeters;
+  const screenCenterY =
+    auditorium.screen.bottomHeightMeters + auditorium.screen.heightMeters / 2;
+  const wallHeight = roomWallHeight(auditorium);
 
   return (
     <>
       <color attach="background" args={["#0b0a0d"]} />
-      <fog attach="fog" args={["#0b0a0d", 16, 46]} />
+      <fog attach="fog" args={["#0b0a0d", 16, Math.max(46, rearZ + 18)]} />
       <ambientLight intensity={0.55} />
       <directionalLight position={[0, 7, 6]} intensity={1.7} />
+      {/* Light spill from the projected picture washing back into the room. */}
       <pointLight
-        position={[0, screenTop + 1.2, 2.5]}
-        color="#fff3d6"
-        intensity={1.8}
-        distance={26}
+        position={[0, screenCenterY, 2.2]}
+        color="#f6d2a6"
+        intensity={2.2}
+        distance={rearZ + 12}
         decay={2}
       />
       <FixedSeatCamera
@@ -141,12 +155,12 @@ function PerspectiveScene({
         target={target}
       />
 
-      <TheaterShell roomWidth={roomWidth} rearZ={rearZ} />
+      <TheaterShell roomWidth={roomWidth} rearZ={rearZ} wallHeight={wallHeight} />
       <TheaterFloor auditorium={auditorium} roomWidth={roomWidth} />
       <Screen auditorium={auditorium} />
       <AisleLights auditorium={auditorium} roomWidth={roomWidth} />
-      <CeilingStars roomWidth={roomWidth} rearZ={rearZ} />
-      <SideAccentBeams roomWidth={roomWidth} />
+      <CeilingStars roomWidth={roomWidth} rearZ={rearZ} wallHeight={wallHeight} />
+      <SideAccentBeams roomWidth={roomWidth} wallHeight={wallHeight} />
 
       {seats.map((seat) => (
         <SeatMesh
@@ -163,41 +177,49 @@ function PerspectiveScene({
 function TheaterShell({
   roomWidth,
   rearZ,
+  wallHeight,
 }: {
   roomWidth: number;
   rearZ: number;
+  wallHeight: number;
 }) {
-  const wallHeight = wallHeightMeters;
   const halfWidth = roomWidth / 2;
+  const roomDepth = rearZ - screenWallZ;
+  const roomCenterZ = (rearZ + screenWallZ) / 2;
 
   return (
     <>
+      <mesh position={[0, wallHeight / 2, screenWallZ]}>
+        <planeGeometry args={[roomWidth, wallHeight]} />
+        <meshStandardMaterial color="#17131d" roughness={1} side={DoubleSide} />
+      </mesh>
+
       <mesh position={[0, wallHeight / 2, rearZ]}>
         <planeGeometry args={[roomWidth, wallHeight]} />
         <meshStandardMaterial color="#221e29" roughness={1} side={DoubleSide} />
       </mesh>
 
       <mesh
-        position={[-halfWidth, wallHeight / 2, rearZ / 2]}
+        position={[-halfWidth, wallHeight / 2, roomCenterZ]}
         rotation={[0, Math.PI / 2, 0]}
       >
-        <planeGeometry args={[rearZ, wallHeight]} />
+        <planeGeometry args={[roomDepth, wallHeight]} />
         <meshStandardMaterial color="#1c1823" roughness={1} side={DoubleSide} />
       </mesh>
 
       <mesh
-        position={[halfWidth, wallHeight / 2, rearZ / 2]}
+        position={[halfWidth, wallHeight / 2, roomCenterZ]}
         rotation={[0, -Math.PI / 2, 0]}
       >
-        <planeGeometry args={[rearZ, wallHeight]} />
+        <planeGeometry args={[roomDepth, wallHeight]} />
         <meshStandardMaterial color="#1c1823" roughness={1} side={DoubleSide} />
       </mesh>
 
       <mesh
-        position={[0, wallHeight, rearZ / 2]}
+        position={[0, wallHeight, roomCenterZ]}
         rotation={[Math.PI / 2, 0, 0]}
       >
-        <planeGeometry args={[roomWidth, rearZ]} />
+        <planeGeometry args={[roomWidth, roomDepth]} />
         <meshStandardMaterial color="#161320" roughness={1} side={DoubleSide} />
       </mesh>
 
@@ -227,10 +249,10 @@ function TheaterFloor({
   return (
     <>
       <mesh
-        position={[0, -0.03, stageFrontZ / 2]}
+        position={[0, -0.03, (stageFrontZ + screenWallZ) / 2]}
         rotation={[-Math.PI / 2, 0, 0]}
       >
-        <planeGeometry args={[roomWidth, stageFrontZ]} />
+        <planeGeometry args={[roomWidth, stageFrontZ - screenWallZ]} />
         <meshStandardMaterial color="#2c1920" roughness={0.9} />
       </mesh>
 
@@ -270,15 +292,23 @@ function Screen({ auditorium }: { auditorium: Auditorium }) {
   const frameDepth = 0.12;
   const maskingColor = "#0c0b0e";
   const halfWidth = screen.widthMeters / 2;
+  const aspectRatio = screen.widthMeters / screen.heightMeters;
+  // The projected picture is a basic (unlit, untonemapped) material so it
+  // reads as self-emitting light rather than a surface lit by the room.
+  const frameTexture = useMemo(
+    () => createFilmFrameTexture(aspectRatio),
+    [aspectRatio],
+  );
+
+  useEffect(() => () => frameTexture.dispose(), [frameTexture]);
 
   return (
     <group position={[0, 0, -0.1]}>
       <mesh position={[0, centerY, 0.02]}>
         <planeGeometry args={[screen.widthMeters, screen.heightMeters]} />
-        <meshStandardMaterial
-          color="#fafafa"
-          emissive="#ffffff"
-          emissiveIntensity={0.32}
+        <meshBasicMaterial
+          map={frameTexture}
+          toneMapped={false}
           side={DoubleSide}
           fog={false}
         />
@@ -329,9 +359,11 @@ const ceilingStarUnits = Array.from({ length: 160 }, () => ({
 function CeilingStars({
   roomWidth,
   rearZ,
+  wallHeight,
 }: {
   roomWidth: number;
   rearZ: number;
+  wallHeight: number;
 }) {
   const meshRef = useRef<InstancedMesh>(null);
   const dummy = useMemo(() => new Object3D(), []);
@@ -346,7 +378,7 @@ function CeilingStars({
     ceilingStarUnits.forEach((star, index) => {
       dummy.position.set(
         star.xFactor * (roomWidth - 1),
-        wallHeightMeters - 0.05,
+        wallHeight - 0.05,
         star.zFactor * (rearZ - 1) + 0.5,
       );
       dummy.scale.setScalar(star.scale);
@@ -354,7 +386,7 @@ function CeilingStars({
       mesh.setMatrixAt(index, dummy.matrix);
     });
     mesh.instanceMatrix.needsUpdate = true;
-  }, [dummy, roomWidth, rearZ]);
+  }, [dummy, roomWidth, rearZ, wallHeight]);
 
   return (
     <instancedMesh
@@ -367,9 +399,16 @@ function CeilingStars({
   );
 }
 
-function SideAccentBeams({ roomWidth }: { roomWidth: number }) {
+function SideAccentBeams({
+  roomWidth,
+  wallHeight,
+}: {
+  roomWidth: number;
+  wallHeight: number;
+}) {
   const halfWidth = roomWidth / 2;
   const beams = [-0.6, -0.25, 0.1, 0.45];
+  const beamLength = wallHeight * 0.76;
 
   return (
     <>
@@ -377,10 +416,14 @@ function SideAccentBeams({ roomWidth }: { roomWidth: number }) {
         beams.map((tilt, index) => (
           <mesh
             key={`${side}-${index}`}
-            position={[side * (halfWidth - 0.05), 3.6, 2.4 + index * 0.2]}
+            position={[
+              side * (halfWidth - 0.05),
+              wallHeight * 0.42,
+              2.4 + index * 0.2,
+            ]}
             rotation={[0, 0, side * (0.55 + tilt * 0.35)]}
           >
-            <planeGeometry args={[0.5, 6.5]} />
+            <planeGeometry args={[0.5, beamLength]} />
             <meshBasicMaterial
               color="#5b8def"
               transparent
