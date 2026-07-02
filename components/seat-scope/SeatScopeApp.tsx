@@ -113,55 +113,73 @@ export function SeatScopeApp() {
   }, [auditoriumSource, metrics.seat.label, pathname, router, searchParams, theaterId]);
 
   return (
-    <main className="flex min-h-screen flex-col gap-8 bg-zinc-50 px-6 py-8 text-zinc-950">
-      <header className="mx-auto flex w-full max-w-7xl flex-col gap-2">
-        <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          {eyebrowLabel}
-        </p>
-        <h1 className="text-4xl font-semibold">Seat Scope 3D</h1>
-      </header>
+    <main className="min-h-screen bg-house text-projection">
+      <div className="mx-auto flex min-h-screen w-full max-w-[100rem] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+        <header className="flex flex-col gap-4 border-b border-line pb-6 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-2">
+            <h1 className="font-display text-5xl font-bold uppercase leading-none tracking-wide sm:text-6xl">
+              Seat Scope 3D
+            </h1>
+            <p className="max-w-2xl text-sm text-dust">
+              Check the view from any seat before the lights go down - real
+              screen formats, real theaters, true sightlines.
+            </p>
+          </div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-dust">
+            Now seating - {eyebrowLabel}
+          </p>
+        </header>
 
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl">
-        <SeatMap
-          auditorium={auditorium}
-          selectedSeatLabel={metrics.seat.label}
-          onSelectSeat={(seat) => setSelectedSeatLabel(seat.label)}
-        />
-
-        <div className="space-y-4">
-          <AuditoriumSourceToggle
-            source={auditoriumSource}
-            onSourceChange={handleSourceChange}
-          />
-          {auditoriumSource === "generic" ? (
-            <ScreenSizeSelector
-              presets={screenPresets}
-              selectedPresetId={screenPresetId}
-              onSelectPreset={setScreenPresetId}
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+          <div className="shrink-0 lg:w-80">
+            <AuditoriumSourceToggle
+              source={auditoriumSource}
+              onSourceChange={handleSourceChange}
             />
-          ) : (
-            <TheaterSelector
-              theaters={theaters}
-              selectedTheaterId={theaterId}
-              onSelectTheater={handleTheaterChange}
-            />
-          )}
-          <AuditoriumPerspective auditorium={auditorium} metrics={metrics} />
-          <SeatMetricsPanel metrics={metrics} />
+          </div>
+          <div className="min-w-0 flex-1">
+            {auditoriumSource === "generic" ? (
+              <ScreenSizeSelector
+                presets={screenPresets}
+                selectedPresetId={screenPresetId}
+                onSelectPreset={setScreenPresetId}
+              />
+            ) : (
+              <TheaterSelector
+                theaters={theaters}
+                selectedTheaterId={theaterId}
+                onSelectTheater={handleTheaterChange}
+              />
+            )}
+          </div>
         </div>
-      </div>
 
-      <footer className="mx-auto w-full max-w-7xl text-sm text-zinc-500">
-        Brought to you by{" "}
-        <a
-          href="https://howtowatchfilm.com/"
-          target="_blank"
-          rel="noreferrer"
-          className="underline hover:text-zinc-700"
-        >
-          How to Watch Film
-        </a>
-      </footer>
+        <div className="grid flex-1 items-start gap-6 xl:grid-cols-[minmax(0,24fr)_minmax(0,26fr)]">
+          <div className="min-w-0 xl:sticky xl:top-6 xl:order-2">
+            <AuditoriumPerspective auditorium={auditorium} metrics={metrics} />
+            <SeatMetricsPanel metrics={metrics} houseLine={eyebrowLabel} />
+          </div>
+          <div className="min-w-0 xl:order-1">
+            <SeatMap
+              auditorium={auditorium}
+              selectedSeatLabel={metrics.seat.label}
+              onSelectSeat={(seat) => setSelectedSeatLabel(seat.label)}
+            />
+          </div>
+        </div>
+
+        <footer className="border-t border-line pt-4 text-xs text-dust">
+          Brought to you by{" "}
+          <a
+            href="https://howtowatchfilm.com/"
+            target="_blank"
+            rel="noreferrer"
+            className="underline decoration-line-bright underline-offset-2 transition-colors hover:text-projection"
+          >
+            How to Watch Film
+          </a>
+        </footer>
+      </div>
     </main>
   );
 }

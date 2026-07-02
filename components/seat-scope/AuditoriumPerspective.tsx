@@ -68,6 +68,7 @@ export function AuditoriumPerspective({
   metrics,
 }: AuditoriumPerspectiveProps) {
   const [lookOffset, setLookOffset] = useState<LookOffset>({ x: 0, y: 0 });
+  const [hasLookedAround, setHasLookedAround] = useState(false);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -78,6 +79,7 @@ export function AuditoriumPerspective({
     const deltaX = event.clientX - dragStart.current.x;
     const deltaY = event.clientY - dragStart.current.y;
     dragStart.current = { x: event.clientX, y: event.clientY };
+    setHasLookedAround(true);
     setLookOffset((current) => ({
       x: clamp(current.x - deltaX * 0.025, -3.2, 3.2),
       y: clamp(current.y + deltaY * 0.015, -1.2, 1.2),
@@ -87,11 +89,11 @@ export function AuditoriumPerspective({
   return (
     <section
       aria-label="3D auditorium perspective"
-      className="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-950 shadow-sm"
+      className="relative overflow-hidden rounded-t-2xl border border-b-0 border-line bg-[#0b0a0d]"
     >
       <div
         aria-label={`3D view from seat ${metrics.seat.label}`}
-        className="h-[24rem] w-full cursor-grab touch-none active:cursor-grabbing lg:h-[34rem] xl:h-[38rem] 2xl:h-[42rem]"
+        className="h-[24rem] w-full cursor-grab touch-none active:cursor-grabbing lg:h-[34rem] xl:h-[max(26rem,calc(100dvh-36rem))]"
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
           dragStart.current = { x: event.clientX, y: event.clientY };
@@ -116,6 +118,21 @@ export function AuditoriumPerspective({
             lookOffset={lookOffset}
           />
         </Canvas>
+      </div>
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-4 top-4 rounded-full border border-projection/10 bg-black/55 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-projection/90 backdrop-blur-sm"
+      >
+        View from {metrics.seat.label}
+      </div>
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-projection/10 bg-black/55 px-3 py-1 text-[11px] font-medium text-projection/80 backdrop-blur-sm transition-opacity duration-500 ${
+          hasLookedAround ? "opacity-0" : "opacity-100"
+        }`}
+      >
+        Drag to look around
       </div>
     </section>
   );
@@ -537,8 +554,10 @@ function SeatMesh({
   isSelected: boolean;
   center: Position3D;
 }) {
+  // The picked seat glows aisle-light amber - the same accent that marks it
+  // on the 2D map and the ticket stub.
   const color = isSelected
-    ? "#22c55e"
+    ? "#f59e0b"
     : seat.availability === "available"
       ? "#7d7267"
       : "#6b2c3a";
@@ -556,7 +575,7 @@ function SeatMesh({
       {isSelected ? (
         <pointLight
           position={[0, 0.5, 0.2]}
-          color="#22c55e"
+          color="#f59e0b"
           intensity={0.5}
           distance={1.4}
           decay={2}

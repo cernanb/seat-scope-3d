@@ -45,60 +45,91 @@ export function SeatMap({
   return (
     <section
       aria-label="Seat selection"
-      className="overflow-x-auto rounded-lg border border-zinc-200 bg-white p-5 shadow-sm"
+      className="rounded-2xl border border-line bg-velvet p-5"
     >
-      <div
-        role="grid"
-        aria-label="Seat map"
-        className="min-w-[46rem] space-y-2"
-      >
-        <div className="grid grid-cols-[2rem_1fr] items-center gap-3 mb-6">
-          <div />
+      <div className="overflow-x-auto pb-1">
+        <div
+          role="grid"
+          aria-label="Seat map"
+          className="relative space-y-2"
+          style={{ minWidth: maxRowWidthPx + 44 }}
+        >
           <div
             aria-hidden="true"
-            className="mx-auto h-8 rounded-sm border border-zinc-300 bg-zinc-100 text-center text-xs font-medium uppercase leading-8 tracking-wide text-zinc-500"
-            style={{ width: maxRowWidthPx }}
-          >
-            Screen
-          </div>
-        </div>
-
-        {auditorium.rows.map((row, rowIndex) => {
-          const rowSeats = seats.filter((seat) => seat.rowLabel === row.label);
-          const hasCrossAisleBefore =
-            rowIndex > 0 &&
-            placements[rowIndex].crossAisleDepthBeforeMeters > 0;
-
-          return (
+            className="pointer-events-none absolute inset-x-11 top-9 h-48"
+            style={{
+              background:
+                "radial-gradient(ellipse 55% 100% at 50% 0%, rgba(244,239,228,0.08), transparent 70%)",
+            }}
+          />
+          <div className="grid grid-cols-[2rem_1fr] items-center gap-3 mb-6">
+            <div />
             <div
-              key={row.label}
-              role="row"
-              aria-label={`Row ${row.label}`}
-              data-cross-aisle-before={hasCrossAisleBefore || undefined}
-              className={`grid grid-cols-[2rem_1fr] items-center gap-3${
-                hasCrossAisleBefore ? " mt-6" : ""
-              }`}
+              aria-hidden="true"
+              className="mx-auto h-8 rounded-sm bg-projection text-center text-[11px] font-semibold uppercase leading-8 tracking-[0.4em] text-house shadow-[0_10px_50px_-4px_rgba(244,239,228,0.55)]"
+              style={{ width: maxRowWidthPx }}
             >
-              <div className="text-center text-sm font-medium text-zinc-500">
-                {row.label}
-              </div>
-              <div
-                className="mx-auto flex items-center justify-center gap-0.5"
-                style={{ width: maxRowWidthPx }}
-              >
-                {rowSeats.map((seat) => (
-                  <SeatSlot
-                    key={seat.label}
-                    auditorium={auditorium}
-                    seat={seat}
-                    selectedSeatLabel={selectedSeatLabel}
-                    onSelectSeat={onSelectSeat}
-                  />
-                ))}
-              </div>
+              Screen
             </div>
-          );
-        })}
+          </div>
+
+          {auditorium.rows.map((row, rowIndex) => {
+            const rowSeats = seats.filter(
+              (seat) => seat.rowLabel === row.label,
+            );
+            const hasCrossAisleBefore =
+              rowIndex > 0 &&
+              placements[rowIndex].crossAisleDepthBeforeMeters > 0;
+
+            return (
+              <div
+                key={row.label}
+                role="row"
+                aria-label={`Row ${row.label}`}
+                data-cross-aisle-before={hasCrossAisleBefore || undefined}
+                className={`grid grid-cols-[2rem_1fr] items-center gap-3${
+                  hasCrossAisleBefore ? " mt-6" : ""
+                }`}
+              >
+                <div className="text-center font-mono text-xs text-dust">
+                  {row.label}
+                </div>
+                <div
+                  className="mx-auto flex items-center justify-center gap-0.5"
+                  style={{ width: maxRowWidthPx }}
+                >
+                  {rowSeats.map((seat) => (
+                    <SeatSlot
+                      key={seat.label}
+                      auditorium={auditorium}
+                      seat={seat}
+                      selectedSeatLabel={selectedSeatLabel}
+                      onSelectSeat={onSelectSeat}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div
+        aria-hidden="true"
+        className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-4 text-xs text-dust"
+      >
+        <span className="flex items-center gap-2">
+          <span className="h-3.5 w-3.5 rounded border border-line-bright bg-upholstery" />
+          Available
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="h-3.5 w-3.5 rounded border border-amber bg-amber shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
+          Your seat
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="h-3.5 w-3.5 rounded border border-wine/40 bg-wine/25" />
+          Unavailable
+        </span>
       </div>
     </section>
   );
@@ -264,15 +295,15 @@ function findSeatInColumn(
 
 function getSeatButtonClassName(isAvailable: boolean, isSelected: boolean) {
   const baseClassName =
-    "h-7 w-7 shrink-0 rounded-md border text-[11px] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2";
+    "h-7 w-7 shrink-0 rounded-md border text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 focus-visible:ring-offset-velvet";
 
   if (!isAvailable) {
-    return `${baseClassName} cursor-not-allowed border-zinc-200 bg-zinc-100 text-zinc-400`;
+    return `${baseClassName} cursor-not-allowed border-wine/30 bg-wine/20 text-wine-soft/70`;
   }
 
   if (isSelected) {
-    return `${baseClassName} border-zinc-950 bg-zinc-950 text-white`;
+    return `${baseClassName} border-amber bg-amber text-[#2b1903] shadow-[0_0_18px_rgba(245,158,11,0.45)]`;
   }
 
-  return `${baseClassName} border-zinc-300 bg-white text-zinc-700 hover:border-zinc-600 hover:bg-zinc-100`;
+  return `${baseClassName} border-line-bright bg-upholstery text-dust hover:border-amber/70 hover:bg-upholstery-bright hover:text-projection`;
 }

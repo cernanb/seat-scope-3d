@@ -14,9 +14,9 @@ function SeatScopeFallback() {
   return (
     <main
       aria-busy="true"
-      className="flex min-h-screen items-center justify-center bg-zinc-50 px-6 text-zinc-950"
+      className="flex min-h-screen items-center justify-center bg-house px-6 text-projection"
     >
-      <p className="text-sm font-medium text-zinc-600">Loading seat scope...</p>
+      <p className="text-sm font-medium text-dust">Dimming the lights...</p>
     </main>
   );
 }

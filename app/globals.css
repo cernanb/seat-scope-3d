@@ -1,26 +1,47 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/*
+ * "House lights down" palette. Every color is sourced from a material that
+ * already exists in the 3D auditorium render: the velvet walls, the seat
+ * upholstery, the wine tone of blocked seats, the warm white of projection
+ * light, and the amber of the aisle safety lights (the single accent).
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-house: #0d0a10;
+  --color-velvet: #1a1420;
+  --color-velvet-deep: #131017;
+  --color-upholstery: #251c2e;
+  --color-upholstery-bright: #2f2439;
+  --color-line: #2f2537;
+  --color-line-bright: #473a52;
+  --color-projection: #f4efe4;
+  --color-dust: #a89aae;
+  --color-amber: #f59e0b;
+  --color-wine: #6b2c3a;
+  --color-wine-soft: #a5677a;
+  --color-ticket-ink: #241a10;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: var(--font-big-shoulders);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-house);
+  color: var(--color-projection);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--color-amber);
+  color: var(--color-house);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

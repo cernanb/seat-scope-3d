@@ -20,7 +20,7 @@ export function AuditoriumSourceToggle({
     <div
       role="radiogroup"
       aria-label="Auditorium source"
-      className="grid grid-cols-2 rounded-lg border border-zinc-200 bg-white p-1 shadow-sm"
+      className="grid grid-cols-2 gap-1 rounded-xl border border-line bg-velvet p-1"
     >
       {options.map((option) => {
         const isSelected = source === option.value;
@@ -34,8 +34,8 @@ export function AuditoriumSourceToggle({
             onClick={() => onSourceChange(option.value)}
             className={
               isSelected
-                ? "rounded-md bg-zinc-950 px-3 py-2 text-sm font-medium text-white"
-                : "rounded-md px-3 py-2 text-sm font-medium text-zinc-600"
+                ? "rounded-lg bg-projection px-3 py-2 text-sm font-semibold text-house transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 focus-visible:ring-offset-velvet"
+                : "rounded-lg px-3 py-2 text-sm font-medium text-dust transition-colors hover:text-projection focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2 focus-visible:ring-offset-velvet"
             }
           >
             {option.label}
