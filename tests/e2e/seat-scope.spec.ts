@@ -76,6 +76,41 @@ test("lets a user switch to a real theater and see its own seat chart and disclo
   await expect(page).not.toHaveURL(/theater=/);
 });
 
+test("renders the stadium view from a back tier of a stadium-seating theater", async ({
+  page,
+}) => {
+  await page.goto(
+    "/?theater=regal-edwards-irvine-spectrum-auditorium-12-imax&seat=M7",
+  );
+
+  await expect(
+    page.getByRole("region", { name: "Selected seat summary" }),
+  ).toContainText("M7");
+
+  // The seat chart shows the walkway between the front section and the
+  // stadium tiers as a visible gap: row D starts lower than rows A-C's
+  // even spacing would put it.
+  const rowC = await page
+    .getByRole("row", { name: "Row C" })
+    .boundingBox();
+  const rowD = await page
+    .getByRole("row", { name: "Row D" })
+    .boundingBox();
+  const rowB = await page
+    .getByRole("row", { name: "Row B" })
+    .boundingBox();
+  const evenRowGap = rowC!.y - rowB!.y;
+
+  expect(rowD!.y - rowC!.y).toBeGreaterThan(evenRowGap + 10);
+
+  const perspective = page.getByRole("img", { name: "3D view from seat M7" });
+
+  await expect(perspective).toBeVisible();
+  await expect
+    .poll(() => countVisibleCanvasPixels(perspective.locator("canvas")))
+    .toBeGreaterThan(20);
+});
+
 test("centers every row and the screen on the same axis even when row widths differ", async ({
   page,
 }) => {

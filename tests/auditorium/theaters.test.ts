@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { calculateSeatMetrics, listSeats } from "@/lib/auditorium/geometry";
+import {
+  calculateSeatMetrics,
+  listRowPlacements,
+  listSeats,
+} from "@/lib/auditorium/geometry";
 import {
   defaultTheaterId,
   findTheater,
@@ -81,6 +85,35 @@ describe("theaters", () => {
     expect(seatCountByLabel.A).toBe(22);
     expect(seatCountByLabel.B).toBe(20);
     expect(seatCountByLabel.C).toBe(26);
+  });
+
+  it("keeps every theater's seating sections consistent with its rows", () => {
+    for (const theater of theaters) {
+      expect(() => listRowPlacements(theater)).not.toThrow();
+    }
+  });
+
+  it("models the Irvine Spectrum IMAX auditorium with stadium seating", () => {
+    const theater = findTheater(
+      "regal-edwards-irvine-spectrum-auditorium-12-imax",
+    );
+    const placements = listRowPlacements(theater);
+    const firstStadiumRowIndex = placements.findIndex(
+      (placement) => placement.crossAisleDepthBeforeMeters > 0,
+    );
+
+    // Rows A-C are the near-flat front section; D starts the stadium tiers.
+    expect(firstStadiumRowIndex).toBe(3);
+    expect(
+      placements[3].floorElevationMeters - placements[2].floorElevationMeters,
+    ).toBeGreaterThan(
+      placements[2].floorElevationMeters - placements[1].floorElevationMeters,
+    );
+    expect(
+      placements[4].floorElevationMeters - placements[3].floorElevationMeters,
+    ).toBeGreaterThan(
+      placements[1].floorElevationMeters - placements[0].floorElevationMeters,
+    );
   });
 
   it("splits the Irvine Spectrum IMAX auditorium's last row around a center gap", () => {

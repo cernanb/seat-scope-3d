@@ -12,7 +12,11 @@ import {
   type PerspectiveCamera as ThreePerspectiveCamera,
 } from "three";
 
-import { getSeatCenter, listSeats } from "@/lib/auditorium/geometry";
+import {
+  getSeatCenter,
+  listRowPlacements,
+  listSeats,
+} from "@/lib/auditorium/geometry";
 import { createFilmFrameTexture } from "./film-frame-texture";
 import type {
   Auditorium,
@@ -45,13 +49,19 @@ const minimumWallHeightMeters = 8.5;
 // a wide view see the screen floating in a black void.
 const screenWallZ = -0.4;
 
-// Giant-format screens (IMAX 15/70 tops out above 23 m) need the room to
-// grow with them, or the fixed ceiling plane slices the picture off.
-const roomWallHeight = (auditorium: Auditorium) =>
-  Math.max(
+// Giant-format screens (IMAX 15/70 tops out above 23 m) and tall stadium
+// sections both need the room to grow with them, or the fixed ceiling plane
+// slices the picture off / pins the back rows to the ceiling.
+const roomWallHeight = (auditorium: Auditorium) => {
+  const backRowFloor =
+    listRowPlacements(auditorium).at(-1)?.floorElevationMeters ?? 0;
+
+  return Math.max(
     minimumWallHeightMeters,
     auditorium.screen.bottomHeightMeters + auditorium.screen.heightMeters + 1.5,
+    backRowFloor + 3,
   );
+};
 
 export function AuditoriumPerspective({
   auditorium,
@@ -128,9 +138,8 @@ function PerspectiveScene({
   const seats = useMemo(() => listSeats(auditorium), [auditorium]);
   const roomWidth = auditorium.screen.widthMeters + 6;
   const rearZ =
-    auditorium.geometry.frontClearanceMeters +
-    (auditorium.rows.length - 1) * auditorium.geometry.rowSpacingMeters +
-    2.5;
+    (listRowPlacements(auditorium).at(-1)?.rowCenterZMeters ??
+      auditorium.geometry.frontClearanceMeters) + 2.5;
   const screenCenterY =
     auditorium.screen.bottomHeightMeters + auditorium.screen.heightMeters / 2;
   const wallHeight = roomWallHeight(auditorium);
@@ -243,8 +252,11 @@ function TheaterFloor({
   roomWidth: number;
 }) {
   const { rows, geometry } = auditorium;
+  const placements = useMemo(() => listRowPlacements(auditorium), [auditorium]);
   const stepDepth = geometry.rowSpacingMeters;
-  const stageFrontZ = geometry.frontClearanceMeters - stepDepth / 2;
+  const stageFrontZ =
+    (placements[0]?.rowCenterZMeters ?? geometry.frontClearanceMeters) -
+    stepDepth / 2;
 
   return (
     <>
@@ -257,9 +269,12 @@ function TheaterFloor({
       </mesh>
 
       {rows.map((row, index) => {
-        const topY = index * geometry.rowElevationMeters;
-        const centerZ =
-          geometry.frontClearanceMeters + index * geometry.rowSpacingMeters;
+        const placement = placements[index];
+        const topY = placement.floorElevationMeters;
+        const centerZ = placement.rowCenterZMeters;
+        const walkwayDepth = placement.crossAisleDepthBeforeMeters;
+        const previousElevation =
+          index > 0 ? placements[index - 1].floorElevationMeters : 0;
 
         return (
           <group key={row.label}>
@@ -267,11 +282,42 @@ function TheaterFloor({
               <boxGeometry args={[roomWidth, 0.06, stepDepth]} />
               <meshStandardMaterial color="#432635" roughness={0.95} />
             </mesh>
-            {index > 0 ? (
+            {topY > 0.001 ? (
               <mesh position={[0, topY / 2, centerZ - stepDepth / 2]}>
                 <boxGeometry args={[roomWidth, topY, 0.06]} />
                 <meshStandardMaterial color="#22131a" roughness={0.95} />
               </mesh>
+            ) : null}
+            {walkwayDepth > 0 && index > 0 ? (
+              // Cross-aisle walkway landing at the previous section's floor
+              // level, with a safety light strip along the riser it runs
+              // against.
+              <group>
+                <mesh
+                  position={[
+                    0,
+                    previousElevation - 0.03,
+                    centerZ - stepDepth / 2 - walkwayDepth / 2,
+                  ]}
+                >
+                  <boxGeometry args={[roomWidth, 0.06, walkwayDepth]} />
+                  <meshStandardMaterial color="#33202b" roughness={0.95} />
+                </mesh>
+                <mesh
+                  position={[
+                    0,
+                    previousElevation + 0.02,
+                    centerZ - stepDepth / 2 - 0.1,
+                  ]}
+                >
+                  <boxGeometry args={[roomWidth - 1.6, 0.02, 0.08]} />
+                  <meshStandardMaterial
+                    color="#f59e0b"
+                    emissive="#f59e0b"
+                    emissiveIntensity={0.7}
+                  />
+                </mesh>
+              </group>
             ) : null}
           </group>
         );
@@ -447,15 +493,15 @@ function AisleLights({
   auditorium: Auditorium;
   roomWidth: number;
 }) {
-  const { rows, geometry } = auditorium;
+  const { rows } = auditorium;
+  const placements = useMemo(() => listRowPlacements(auditorium), [auditorium]);
   const aisleX = roomWidth / 2 - 0.5;
 
   return (
     <>
       {rows.map((row, index) => {
-        const topY = index * geometry.rowElevationMeters;
-        const centerZ =
-          geometry.frontClearanceMeters + index * geometry.rowSpacingMeters;
+        const topY = placements[index].floorElevationMeters;
+        const centerZ = placements[index].rowCenterZMeters;
 
         return (
           <group key={row.label}>

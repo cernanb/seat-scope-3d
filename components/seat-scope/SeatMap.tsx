@@ -3,7 +3,7 @@
 import type { KeyboardEvent } from "react";
 
 import type { Auditorium, Row, Seat } from "@/lib/auditorium/types";
-import { listSeats } from "@/lib/auditorium/geometry";
+import { listRowPlacements, listSeats } from "@/lib/auditorium/geometry";
 
 type SeatMapProps = {
   auditorium: Auditorium;
@@ -37,6 +37,7 @@ export function SeatMap({
   onSelectSeat,
 }: SeatMapProps) {
   const seats = listSeats(auditorium);
+  const placements = listRowPlacements(auditorium);
   const maxRowWidthPx = Math.max(
     ...auditorium.rows.map(getRowContentWidthPx),
   );
@@ -62,15 +63,21 @@ export function SeatMap({
           </div>
         </div>
 
-        {auditorium.rows.map((row) => {
+        {auditorium.rows.map((row, rowIndex) => {
           const rowSeats = seats.filter((seat) => seat.rowLabel === row.label);
+          const hasCrossAisleBefore =
+            rowIndex > 0 &&
+            placements[rowIndex].crossAisleDepthBeforeMeters > 0;
 
           return (
             <div
               key={row.label}
               role="row"
               aria-label={`Row ${row.label}`}
-              className="grid grid-cols-[2rem_1fr] items-center gap-3"
+              data-cross-aisle-before={hasCrossAisleBefore || undefined}
+              className={`grid grid-cols-[2rem_1fr] items-center gap-3${
+                hasCrossAisleBefore ? " mt-6" : ""
+              }`}
             >
               <div className="text-center text-sm font-medium text-zinc-500">
                 {row.label}

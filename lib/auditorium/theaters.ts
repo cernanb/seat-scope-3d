@@ -132,13 +132,26 @@ export const theaters: Auditorium[] = [
       { label: "L", seatCount: 33, aisleAfterSeatNumbers: [], unavailableSeatNumbers: [] },
       { label: "M", seatCount: 13, aisleAfterSeatNumbers: [6], unavailableSeatNumbers: [] },
     ],
+    // Stadium layout: rows A-C sit on a near-flat floor under the screen,
+    // then a cross-aisle walkway and a step up into the stadium tiers (D-M).
+    // Riser and walkway dimensions are typical stadium-auditorium numbers,
+    // not measured from the venue.
+    seatingSections: [
+      { rowCount: 3, riserHeightMeters: 0.12 },
+      {
+        rowCount: 9,
+        riserHeightMeters: 0.45,
+        stepUpMeters: 0.9,
+        crossAisleDepthMeters: 1.8,
+      },
+    ],
     defaultSeatLabel: "J20",
     theater: {
       name: "Regal Edwards Irvine Spectrum - Auditorium 12 (IMAX)",
       city: "Irvine, CA (Orange County)",
       screenFormatLabel: "IMAX",
       sourceNote:
-        "Screen size (87.9 x 67.6 ft) and total seating capacity (387) came directly from the venue's real seat map, along with exact counts for rows A, B, and C. Row and seat layout below reconciles those numbers with the map's overall shape; it is not an exact transcription.",
+        "Screen size (87.9 x 67.6 ft) and total seating capacity (387) came directly from the venue's real seat map, along with exact counts for rows A, B, and C. Row and seat layout below reconciles those numbers with the map's overall shape; it is not an exact transcription. The stadium floor profile (flat front rows, cross-aisle, stepped tiers) matches the auditorium's style, but riser heights are typical stadium dimensions, not measurements.",
       sourceUrl:
         "https://www.regmovies.com/theatres/regal-edwards-irvine-spectrum-1010",
     },

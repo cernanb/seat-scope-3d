@@ -3,11 +3,82 @@ import type {
   Position3D,
   Row,
   Seat,
+  SeatingSection,
   SeatLabel,
   SeatMetrics,
 } from "./types";
 
 const toDegrees = (radians: number) => radians * (180 / Math.PI);
+
+export type RowPlacement = {
+  /** Height of this row's floor tier above the front of the house. */
+  floorElevationMeters: number;
+  /** Distance of this row's seat centers from the screen plane. */
+  rowCenterZMeters: number;
+  /** Walkway depth inserted just in front of this row (0 for most rows). */
+  crossAisleDepthBeforeMeters: number;
+};
+
+/**
+ * The single source of truth for where each row's floor sits, shared by
+ * seat metrics and the 3D renderer. Walks the auditorium's seating sections
+ * front to back; without sections it reproduces the classic uniform rake.
+ */
+export function listRowPlacements(auditorium: Auditorium): RowPlacement[] {
+  const { geometry, rows } = auditorium;
+  const sections: SeatingSection[] = auditorium.seatingSections ?? [
+    { rowCount: rows.length, riserHeightMeters: geometry.rowElevationMeters },
+  ];
+  const sectionRowCount = sections.reduce(
+    (sum, section) => sum + section.rowCount,
+    0,
+  );
+
+  if (sectionRowCount !== rows.length) {
+    throw new Error("The seating sections must cover every row exactly.");
+  }
+
+  const placements: RowPlacement[] = [];
+  let elevation = 0;
+  let z = geometry.frontClearanceMeters;
+
+  for (const section of sections) {
+    const crossAisleDepth = section.crossAisleDepthMeters ?? 0;
+
+    elevation += section.stepUpMeters ?? 0;
+    z += crossAisleDepth;
+
+    for (let rowInSection = 0; rowInSection < section.rowCount; rowInSection += 1) {
+      if (rowInSection > 0) {
+        elevation += section.riserHeightMeters;
+        z += geometry.rowSpacingMeters;
+      } else if (placements.length > 0) {
+        z += geometry.rowSpacingMeters;
+      }
+
+      placements.push({
+        floorElevationMeters: elevation,
+        rowCenterZMeters: z,
+        crossAisleDepthBeforeMeters: rowInSection === 0 ? crossAisleDepth : 0,
+      });
+    }
+  }
+
+  return placements;
+}
+
+export function getRowPlacement(
+  auditorium: Auditorium,
+  rowIndex: number,
+): RowPlacement {
+  const placement = listRowPlacements(auditorium)[rowIndex];
+
+  if (!placement) {
+    throw new Error(`Row index ${rowIndex} is outside the auditorium.`);
+  }
+
+  return placement;
+}
 
 export function listSeats(auditorium: Auditorium): Seat[] {
   return auditorium.rows.flatMap((row, rowIndex) =>
@@ -62,15 +133,14 @@ export function getSeatCenter(
   seat: Seat,
 ): Position3D {
   const row = auditorium.rows[seat.rowIndex];
+  const placement = getRowPlacement(auditorium, seat.rowIndex);
 
   return {
     x: getSeatX(auditorium, row, seat.seatNumber),
     y:
       auditorium.geometry.seatCenterHeightMeters +
-      seat.rowIndex * auditorium.geometry.rowElevationMeters,
-    z:
-      auditorium.geometry.frontClearanceMeters +
-      seat.rowIndex * auditorium.geometry.rowSpacingMeters,
+      placement.floorElevationMeters,
+    z: placement.rowCenterZMeters,
   };
 }
 
@@ -79,12 +149,11 @@ export function getViewingPosition(
   seat: Seat,
 ): Position3D {
   const seatCenter = getSeatCenter(auditorium, seat);
+  const placement = getRowPlacement(auditorium, seat.rowIndex);
 
   return {
     x: seatCenter.x,
-    y:
-      seat.rowIndex * auditorium.geometry.rowElevationMeters +
-      auditorium.geometry.eyeHeightMeters,
+    y: placement.floorElevationMeters + auditorium.geometry.eyeHeightMeters,
     z: seatCenter.z - auditorium.geometry.eyeForwardOffsetMeters,
   };
 }
